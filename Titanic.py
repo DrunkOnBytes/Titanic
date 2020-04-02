@@ -33,6 +33,18 @@ X.iloc[:,6] = le.fit_transform(X.iloc[:,6])
 ohe = OneHotEncoder(categorical_features = [0,6])
 X = ohe.fit_transform(X).toarray()
 X = np.delete(X,[2,5],axis = 1)
+
+
+'''
+sex = pd.get_dummies(train['Sex'],drop_first=True)
+embark = pd.get_dummies(train['Embarked'],drop_first=True)
+#drop the sex,embarked,name and tickets columns
+train.drop(['Sex','Embarked','Name','Ticket'],axis=1,inplace=True)
+#concatenate new sex and embark column to our train dataframe
+train = pd.concat([train,sex,embark],axis=1)
+'''
+
+
 #splitting dataset into training set and test set
 from sklearn.model_selection import train_test_split
 xTrain, xTest, yTrain, yTest = train_test_split(X, y, test_size = 0.2, random_state = 0)
@@ -42,6 +54,7 @@ from sklearn.preprocessing import StandardScaler
 sc = StandardScaler()
 xTrain = sc.fit_transform(xTrain)
 xTest = sc.transform(xTest)
+X = sc.transform(X)
 
 #data visualization
 import matplotlib.pyplot as plt
@@ -68,8 +81,34 @@ lr = LogisticRegression()
 lr.fit(xTrain , yTrain)
 pred = lr.predict(xTest)
 
+#model evaluation
 from sklearn.metrics import classification_report
 print(classification_report(yTest,pred))
 
 from sklearn.metrics import confusion_matrix
 print(confusion_matrix(yTest, pred))
+
+
+#final prediction
+testData = pd.read_csv('test.csv')
+passengerId = testData.PassengerId
+testData=testData.drop(['PassengerId','Name','Ticket','Cabin'],axis=1)
+testData.count()
+
+testData.iloc[:,2:3] = imp.transform(testData.iloc[:,2:3])
+testData.iloc[:,5:6] = imp.transform(testData.iloc[:,5:6])
+
+testData.iloc[:,1] = le.fit_transform(testData.iloc[:,1])
+a=[]
+for i in testData.iloc[:,6]:
+    a.append(str(i))
+testData.iloc[:,6]=a
+testData.iloc[:,6] = le.fit_transform(testData.iloc[:,6])
+testData = ohe.fit_transform(testData).toarray()
+testData = np.delete(testData,[2,5],axis = 1)
+testData = sc.fit_transform(testData)
+finalPred = lr.predict(testData)
+ans = pd.DataFrame(columns=['PassengerId','Survived'])
+ans.PassengerId = passengerId
+ans.Survived = finalPred
+ans.to_csv('TitanicAns.csv',index=False)
